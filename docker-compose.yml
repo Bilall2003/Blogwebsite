@@ -1,0 +1,53 @@
+services:
+  # ---- MySQL database ----
+  blog-db:
+    build:
+      context: .
+      dockerfile: database/Dockerfile
+    image: blog-db:1.0
+    environment:
+      MYSQL_ROOT_PASSWORD: blogpass123
+      MYSQL_DATABASE: blog_website
+    ports:
+      - "3307:3306" # host 3307 -> container 3306 (avoids clashing with local MySQL)
+    volumes:
+      - blog_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-pblogpass123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ---- Node.js / Express backend ----
+  blog-server:
+    build:
+      context: ./server
+    image: blog-server:1.0
+    environment:
+      PORT: 4000
+      NODE_ENV: production
+      DB_HOST: blog-db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: blogpass123
+      DB_NAME: blog_website
+      JWT_SECRET: super_secret_change_me
+      JWT_EXPIRES_IN: 7d
+    depends_on:
+      blog-db:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+
+  # ---- React frontend (nginx) ----
+  blog-client:
+    build:
+      context: ./client
+    image: blog-client:1.0
+    depends_on:
+      - blog-server
+    ports:
+      - "8088:80"
+
+volumes:
+  blog_db_data:

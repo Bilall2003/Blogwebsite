@@ -1,0 +1,26 @@
+# Non-sensitive configuration shared by the app pods.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blog-config
+  namespace: blog
+data:
+  DB_HOST: "mysql"
+  DB_PORT: "3306"
+  DB_NAME: "blog_website"
+  DB_USER: "root"
+  NODE_ENV: "production"
+  JWT_EXPIRES_IN: "7d"
+---
+# Sensitive values. stringData keeps them human-readable in the manifest;
+# Kubernetes stores them base64-encoded. Change these before any real use.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blog-secret
+  namespace: blog
+type: Opaque
+stringData:
+  DB_PASSWORD: "blogpass123"
+  MYSQL_ROOT_PASSWORD: "blogpass123"
+  JWT_SECRET: "super_secret_change_me"

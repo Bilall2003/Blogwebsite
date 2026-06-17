@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog-server
+  namespace: blog
+  labels:
+    app: blog-server
+spec:
+  replicas: 2 # 2 replicas (creates a ReplicaSet managing 2 pods)
+  selector:
+    matchLabels:
+      app: blog-server
+  template:
+    metadata:
+      labels:
+        app: blog-server
+    spec:
+      containers:
+        - name: blog-server
+          image: blog-server:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+          envFrom:
+            - configMapRef:
+                name: blog-config
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: blog-secret
+                  key: DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: blog-secret
+                  key: JWT_SECRET
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog-server
+  namespace: blog
+spec:
+  selector:
+    app: blog-server
+  ports:
+    - port: 4000
+      targetPort: 4000
+  type: ClusterIP # internal only; reached by the client's nginx proxy
